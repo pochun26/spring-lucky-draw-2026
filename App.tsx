@@ -32,21 +32,21 @@ const App: React.FC = () => {
 
   // Load from LocalStorage
   useEffect(() => {
-    const storedParticipants = localStorage.getItem(STORAGE_KEY_PARTICIPANTS);
-    const storedWinners = localStorage.getItem(STORAGE_KEY_WINNERS);
-    const storedPrizes = localStorage.getItem(STORAGE_KEY_PRIZES);
-    
-    if (storedParticipants) {
+      const storedParticipants = localStorage.getItem(STORAGE_KEY_PARTICIPANTS);
+      const storedWinners = localStorage.getItem(STORAGE_KEY_WINNERS);
+      const storedPrizes = localStorage.getItem(STORAGE_KEY_PRIZES);
+      
+      if (storedParticipants) {
       setParticipants(JSON.parse(storedParticipants));
-    }
-    if (storedWinners) {
+      }
+      if (storedWinners) {
       setWinners(JSON.parse(storedWinners));
-    }
-    if (storedPrizes) {
-      const parsedPrizes = JSON.parse(storedPrizes);
-      setPrizes(parsedPrizes);
-      if (parsedPrizes.length > 0) setSelectedPrizeId(parsedPrizes[0].id);
-    }
+      }
+      if (storedPrizes) {
+        const parsedPrizes = JSON.parse(storedPrizes);
+          setPrizes(parsedPrizes);
+          if (parsedPrizes.length > 0) setSelectedPrizeId(parsedPrizes[0].id);
+        }
   }, []);
 
   // Save to LocalStorage
@@ -83,10 +83,11 @@ const App: React.FC = () => {
       const prizeLines = rawPrizeInput.split('\n').filter(line => line.trim() !== '');
       const newPrizes: Prize[] = prizeLines.map((line, idx) => {
         const parts = line.split(/[,\t]/);
+        const quantity = parts[1] ? parseInt(parts[1].trim(), 10) : 1;
         return {
           id: `prize-${Date.now()}-${idx}`,
           name: parts[0].trim(),
-          quantity: parts[1] ? parseInt(parts[1].trim()) : 1
+          quantity: isNaN(quantity) || quantity < 1 ? 1 : quantity
         };
       });
       const updatedPrizes = [...prizes, ...newPrizes];
@@ -180,7 +181,6 @@ const App: React.FC = () => {
             <h1 className="text-xl md:text-2xl font-black gold-glow tracking-tighter">
               2026 馬上發財 Pinkoi 神馬龍舞
             </h1>
-            <p className="text-xs text-yellow-500/80 font-medium">DRAGON YEAR LUCKY DRAW</p>
           </div>
         </div>
         
@@ -379,10 +379,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Footer */}
-      <footer className="p-6 text-center text-white/30 text-xs mt-auto">
-        <p>© 2024 春酒大抽獎系統 • 隨機公平公正公開</p>
-      </footer>
     </div>
   );
 };

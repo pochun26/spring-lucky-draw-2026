@@ -20,6 +20,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({
   const animationRef = useRef<number>(0);
   const startTimeRef = useRef<number>(0);
   const startOffsetRef = useRef<number>(0);
+  const offsetRef = useRef<number>(0); // Track offset via ref to avoid dependency issues
   
   // Height of a single item in pixels
   const ITEM_HEIGHT = 80;
@@ -34,89 +35,100 @@ const SlotMachine: React.FC<SlotMachineProps> = ({
     ? Array(30).fill(listToUse).flat() 
     : [];
     
+  // Sync offset state to ref
   useEffect(() => {
-  if (isRolling && winner && participants.length > 0) {
-    if (animationRef.current) cancelAnimationFrame(animationRef.current);
+    offsetRef.current = offset;
+  }, [offset]);
 
-    // Freeze participants list for this roll
-    setActiveParticipants(participants);
-
-    const winnerIndex = participants.findIndex(p => p.id === winner.id);
-    const safeWinnerIndex = winnerIndex >= 0 ? winnerIndex : 0;
-
-    startOffsetRef.current = offset;
-
-    const itemCount = participants.length;
-    const loopHeight = itemCount * ITEM_HEIGHT;
-
-    const currentLoops = Math.floor(
-      Math.abs(startOffsetRef.current) / loopHeight
-    );
-
-    const EXTRA_LOOPS = 15 + Math.floor(Math.random() * 5); // Randomly spin between 15 to 30 extra loops
-    const targetLoops = currentLoops + EXTRA_LOOPS;
-
-    const targetIndex = targetLoops * itemCount + safeWinnerIndex;
-    const finalOffset = -(targetIndex * ITEM_HEIGHT);
-    const totalDistance = finalOffset - startOffsetRef.current;
-
-    const duration = 30000 + Math.floor(Math.random() * 10000); // 20 秒長懸疑
-
-    startTimeRef.current = performance.now();
-
-    const animate = (currentTime: number) => {
-      const elapsed = currentTime - startTimeRef.current;
-      const progress = Math.min(elapsed / duration, 1);
-
-      /**
-       * 🎰 SUDDEN SLOWDOWN EASING
-       * Phase 1: Fast Acceleration (0-30% time) -> Covers 80% of distance
-       * Phase 2: Long Inverse-Proportional Slowdown (30-100% time) -> Covers remaining 20%
-       * This creates a "sudden brake" feel followed by a very smooth crawl.
-       */
-      const k = 20; // Damping intensity
-      const splitTime = 0.3; // Fast phase is 30% of time
-      const splitDist = 0.8; // Fast phase covers 80% of distance
-      
-      let ease;
-      if (progress < splitTime) {
-        // Quadratic ease-in: starts slow, ends fast at the transition point
-        const p = progress / splitTime;
-        ease = p * p * splitDist;
-      } else {
-        // Inverse-proportional slowdown: starts fast at transition, then decelerates rapidly
-        const p = (progress - splitTime) / (1 - splitTime);
-        // Normalize the inverse curve to ensure it hits 1.0 exactly at p=1
-        const rawSlowEase = 1 - 1 / (k * p + 1);
-        const maxSlowEase = 1 - 1 / (k + 1);
-        const normalizedSlowEase = rawSlowEase / maxSlowEase;
-        
-        ease = splitDist + normalizedSlowEase * (1 - splitDist);
-      }
-
-      const currentPos = startOffsetRef.current + totalDistance * ease;
-      setOffset(currentPos);
-
-      if (progress < 1) {
-        animationRef.current = requestAnimationFrame(animate);
-      } else {
-        // 🏁 Animation Finished
-        // Normalize offset to loop 2 (visually identical)
-        const normalizedIndex = safeWinnerIndex + itemCount;
-        const normalizedOffset = -(normalizedIndex * ITEM_HEIGHT);
-        setOffset(normalizedOffset);
-        onAnimationComplete();
+  useEffect(() => {
+    // Always return cleanup function
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
       }
     };
-    
+  }, []);
 
-    animationRef.current = requestAnimationFrame(animate);
-  }
+  useEffect(() => {
+    if (isRolling && winner && participants.length > 0) {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
 
-  return () => {
-    if (animationRef.current) cancelAnimationFrame(animationRef.current);
-  };
-}, [isRolling, winner, participants]);
+      // Freeze participants list for this roll
+      setActiveParticipants(participants);
+
+      const winnerIndex = participants.findIndex(p => p.id === winner.id);
+      const safeWinnerIndex = winnerIndex >= 0 ? winnerIndex : 0;
+
+      // Use current offset value via ref to avoid stale closure and dependency issues
+      startOffsetRef.current = offsetRef.current;
+
+      const itemCount = participants.length;
+      const loopHeight = itemCount * ITEM_HEIGHT;
+
+      const currentLoops = Math.floor(
+        Math.abs(startOffsetRef.current) / loopHeight
+      );
+
+      const EXTRA_LOOPS = 15 + Math.floor(Math.random() * 5);
+      const targetLoops = currentLoops + EXTRA_LOOPS;
+
+      const targetIndex = targetLoops * itemCount + safeWinnerIndex;
+      const finalOffset = -(targetIndex * ITEM_HEIGHT);
+      const totalDistance = finalOffset - startOffsetRef.current;
+
+      const duration = 30000 + Math.floor(Math.random() * 5000);
+
+      startTimeRef.current = performance.now();
+
+      const animate = (currentTime: number) => {
+        const elapsed = currentTime - startTimeRef.current;
+        const progress = Math.min(elapsed / duration, 1);
+
+        /**
+         * 🎰 SUDDEN SLOWDOWN EASING
+         * Phase 1: Fast Acceleration (0-30% time) -> Covers 80% of distance
+         * Phase 2: Long Inverse-Proportional Slowdown (30-100% time) -> Covers remaining 20%
+         * This creates a "sudden brake" feel followed by a very smooth crawl.
+         */
+        const k = 20; // Damping intensity
+        const splitTime = 0.3; // Fast phase is 30% of time
+        const splitDist = 0.8; // Fast phase covers 80% of distance
+        
+        let ease;
+        if (progress < splitTime) {
+          // Quadratic ease-in: starts slow, ends fast at the transition point
+          const p = progress / splitTime;
+          ease = p * p * splitDist;
+        } else {
+          // Inverse-proportional slowdown: starts fast at transition, then decelerates rapidly
+          const p = (progress - splitTime) / (1 - splitTime);
+          // Normalize the inverse curve to ensure it hits 1.0 exactly at p=1
+          const rawSlowEase = 1 - 1 / (k * p + 1);
+          const maxSlowEase = 1 - 1 / (k + 1);
+          const normalizedSlowEase = rawSlowEase / maxSlowEase;
+          
+          ease = splitDist + normalizedSlowEase * (1 - splitDist);
+        }
+
+        const currentPos = startOffsetRef.current + totalDistance * ease;
+        setOffset(currentPos);
+
+        if (progress < 1) {
+          animationRef.current = requestAnimationFrame(animate);
+        } else {
+          // 🏁 Animation Finished
+          // Normalize offset to loop 2 (visually identical)
+          const normalizedIndex = safeWinnerIndex + itemCount;
+          const normalizedOffset = -(normalizedIndex * ITEM_HEIGHT);
+          setOffset(normalizedOffset);
+          onAnimationComplete();
+        }
+      };
+      
+
+      animationRef.current = requestAnimationFrame(animate);
+    }
+  }, [isRolling, winner, participants, onAnimationComplete]);
 
   return (
     <div className="relative w-full max-w-xl mx-auto h-[240px] overflow-hidden rounded-2xl border-4 border-yellow-500 bg-gray-900 shadow-[0_0_30px_rgba(234,179,8,0.3)]">
