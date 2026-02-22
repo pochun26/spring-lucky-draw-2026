@@ -69,16 +69,31 @@ const SlotMachine: React.FC<SlotMachineProps> = ({
         Math.abs(startOffsetRef.current) / loopHeight
       );
 
-      const EXTRA_LOOPS = 15 + Math.floor(Math.random() * 5);
+      const EXTRA_LOOPS = 20 + Math.floor(Math.random() * 5);
       const targetLoops = currentLoops + EXTRA_LOOPS;
 
+      const normalizedIndex = safeWinnerIndex + itemCount;
+      const finalTargetOffset = -(normalizedIndex * ITEM_HEIGHT);
+      
+      const OVERSHOOT_DISTANCE = ITEM_HEIGHT * (1/3);
+      
       const targetIndex = targetLoops * itemCount + safeWinnerIndex;
-      const finalOffset = -(targetIndex * ITEM_HEIGHT);
-      const totalDistance = finalOffset - startOffsetRef.current;
+      const finalOffsetWithLoops = -(targetIndex * ITEM_HEIGHT);
+      
+      const overshootTarget = finalOffsetWithLoops - OVERSHOOT_DISTANCE;
+      
+      const totalDistance = overshootTarget - startOffsetRef.current;
 
       const duration = 30000 + Math.floor(Math.random() * 5000);
 
       startTimeRef.current = performance.now();
+
+      // Magnetic stop parameters
+      const MAGNETIC_DURATION = 500; // Duration for magnetic snap effect (ms) - slightly longer for smoother effect
+      const BOUNCE_DAMPING = 0.2; // Damping factor for bounce back (very subtle)
+      
+      let magneticStartTime: number | null = null;
+      let magneticStartOffset: number = 0;
 
       const animate = (currentTime: number) => {
         const elapsed = currentTime - startTimeRef.current;
@@ -90,7 +105,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({
          * Phase 2: Long Inverse-Proportional Slowdown (30-100% time) -> Covers remaining 20%
          * This creates a "sudden brake" feel followed by a very smooth crawl.
          */
-        const k = 20; // Damping intensity
+        const k = 40; // Damping intensity
         const splitTime = 0.3; // Fast phase is 30% of time
         const splitDist = 0.8; // Fast phase covers 80% of distance
         
@@ -110,18 +125,53 @@ const SlotMachine: React.FC<SlotMachineProps> = ({
           ease = splitDist + normalizedSlowEase * (1 - splitDist);
         }
 
+        // Calculate position: 主動畫直接到達超過位置（overshootTarget）
         const currentPos = startOffsetRef.current + totalDistance * ease;
         setOffset(currentPos);
 
         if (progress < 1) {
           animationRef.current = requestAnimationFrame(animate);
         } else {
-          // 🏁 Animation Finished
-          // Normalize offset to loop 2 (visually identical)
-          const normalizedIndex = safeWinnerIndex + itemCount;
-          const normalizedOffset = -(normalizedIndex * ITEM_HEIGHT);
-          setOffset(normalizedOffset);
-          onAnimationComplete();
+          // 🧲 MAGNETIC STOP EFFECT
+          // 主動畫已經超過目標位置，現在磁性效果彈回
+          
+          // 主動畫結束時已經在超過位置
+          setOffset(overshootTarget);
+          
+          magneticStartTime = currentTime;
+          magneticStartOffset = overshootTarget; // 從超過的位置開始磁性效果
+          
+          const magneticAnimate = (magTime: number) => {
+            if (!magneticStartTime) return;
+            
+            const magElapsed = magTime - magneticStartTime;
+            const magProgress = Math.min(magElapsed / MAGNETIC_DURATION, 1);
+            
+            // 從超過的位置彈回目標位置
+            // magneticStartOffset 已經是 overshootTarget（超過的位置，包含 EXTRA_LOOPS）
+            // 需要彈回到 finalOffsetWithLoops（因為 normalize 後等於 finalTargetOffset）
+            // 這樣可以確保彈回距離正確，不會多轉
+            const snapBackDistance = finalOffsetWithLoops - magneticStartOffset;
+            
+            // 使用 ease-out 緩動，加上微小的彈跳效果
+            const snapEase = 1 - Math.pow(1 - magProgress, 3); // Cubic ease-out
+            // 微小的阻尼振盪效果
+            const bounce = Math.exp(-magProgress * 8) * Math.sin(magProgress * Math.PI * 1.5) * BOUNCE_DAMPING;
+            
+            const magneticPos = magneticStartOffset + snapBackDistance * snapEase + bounce * Math.abs(snapBackDistance);
+            
+            setOffset(magneticPos);
+            
+            if (magProgress < 1) {
+              animationRef.current = requestAnimationFrame(magneticAnimate);
+            } else {
+              // 🏁 Final position - ensure precise alignment
+              setOffset(finalTargetOffset);
+              onAnimationComplete();
+            }
+          };
+          
+          animationRef.current = requestAnimationFrame(magneticAnimate);
         }
       };
       
