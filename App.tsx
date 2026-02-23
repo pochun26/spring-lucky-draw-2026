@@ -19,26 +19,119 @@ const STORAGE_KEY_PARTICIPANTS = 'spring_gala_participants';
 const STORAGE_KEY_WINNERS = 'spring_gala_winners';
 const STORAGE_KEY_PRIZES = 'spring_gala_prizes';
 
+const HARDCODED_PARTICIPANTS: Participant[] = [
+  { id: 'p-1', name: '顏君庭/Peter Yen' },
+  { id: 'p-2', name: '李讓/Mike Lee' },
+  { id: 'p-3', name: '張登舜/Danny Chang' },
+  { id: 'p-4', name: '賴冠儒/Seadmoon Lai' },
+  { id: 'p-5', name: '苗一川/Angie Miao' },
+  { id: 'p-6', name: '林湘婕/Kate Lin' },
+  { id: 'p-7', name: '楊禮如/Lily Yang' },
+  { id: 'p-8', name: '嚴守潔/Jessica Yen' },
+  { id: 'p-9', name: '張倚瑄/Pearl Chang' },
+  { id: 'p-10', name: '陳湘霖/Devin Chen' },
+  { id: 'p-11', name: '李少昱/Mark Lee' },
+  { id: 'p-12', name: '許華汧/Jo Xu' },
+  { id: 'p-13', name: '黃翊庭/Yiting Huang' },
+  { id: 'p-14', name: '邊聖宇/Fred Pien' },
+  { id: 'p-15', name: '曾宥瑞/Ray Tseng' },
+  { id: 'p-16', name: '黃意玲/Lydia Huang' },
+  { id: 'p-17', name: '陳昱珊/Emily Chen' },
+  { id: 'p-18', name: '王嘉君/Karen Wang' },
+  { id: 'p-19', name: '陳姿穎/ZihZih Chen' },
+  { id: 'p-20', name: '陳映慈/April Chen' },
+  { id: 'p-21', name: '許博鏞/Dickey Hsu' },
+  { id: 'p-22', name: '洪士程/Shih Chen Hung' },
+  { id: 'p-23', name: '邱瀚毅/Dixon Chiu' },
+  { id: 'p-24', name: '杜杰翰/Jonathan Tu' },
+  { id: 'p-25', name: '邱嘉慶/Aion Chiu' },
+  { id: 'p-26', name: '郭思妍/Lucy Kuo' },
+  { id: 'p-27', name: '陳彥如/Verna Chen' },
+  { id: 'p-28', name: '鄭博元/Louis Zheng' },
+  { id: 'p-29', name: '巫佩儀/Peggy Wu' },
+  { id: 'p-30', name: '侯君妍/Kelly Hou' },
+  { id: 'p-31', name: '蔡宗嶧/Seven Tsai' },
+  { id: 'p-32', name: '葉建夆/Jimmy Yeh' },
+  { id: 'p-33', name: '張睿哲/Pony Chang' },
+  { id: 'p-34', name: '孫慧軒/Stephanie Sun' },
+  { id: 'p-35', name: '黃以萱/Sheila Huang' },
+  { id: 'p-36', name: '詹涵如/Ruby Chan' },
+  { id: 'p-37', name: '紀諭如/Lulu Chi' },
+  { id: 'p-38', name: '張雅甯/Grace Chang' },
+  { id: 'p-39', name: '張瑀淳/Laura Chang' },
+  { id: 'p-40', name: '陳奕/Eton Chen' },
+  { id: 'p-41', name: '謝秉芸/Joyce Hsieh' },
+  { id: 'p-42', name: '林若雯/Loran Lin' },
+  { id: 'p-43', name: '王思惠/Winnie Wang' },
+  { id: 'p-44', name: '莊期棋/Kiki Chuang' },
+  { id: 'p-45', name: '陳錕詮/Jack Chen' },
+  { id: 'p-46', name: '葉立安/Lian Yeh' },
+  { id: 'p-47', name: '洪婉淇/Chelsea Hung' },
+  { id: 'p-48', name: '陳亭潔/Jay Chen' },
+  { id: 'p-49', name: '王顥潼/Doris Wang' },
+  { id: 'p-50', name: '徐子婷/Gina Hsu' },
+  { id: 'p-51', name: '陳柏君/Paul Chen' },
+  { id: 'p-52', name: '吳玉凱/Kai Wu' },
+  { id: 'p-53', name: '高于芩/Sara Kao' },
+  { id: 'p-54', name: '李曈/Patricia Lee' },
+  { id: 'p-55', name: '何品儀/Rita Ho' },
+  { id: 'p-56', name: '梁姿宇/Faunia Liang' },
+  { id: 'p-57', name: '郭泰維/Tavie Kuo' },
+  { id: 'p-58', name: '溫子謙/Charlie Wen' },
+  { id: 'p-59', name: '吳怡萱/Cheryl Wu' },
+  { id: 'p-60', name: '潘柏涵/Sarah Pan' },
+  { id: 'p-61', name: '李品嫻/Angela Lee' },
+  { id: 'p-62', name: '吳萱/Esther Wu' },
+  { id: 'p-63', name: '江依璇/Kerry Chiang' },
+  { id: 'p-64', name: '林誠軒/Sherman Lin' },
+  { id: 'p-65', name: '官瑞芃/Renata Kuan' },
+  { id: 'p-66', name: '楊于慧/Yuhui Yang' },
+  { id: 'p-67', name: '黃鈺淇/Eartha Huang' },
+  { id: 'p-68', name: '林容/Lia Lin' },
+  { id: 'p-69', name: '李榆慧/Wendy Lee' },
+  { id: 'p-70', name: '方妍心/Cindy Fang' },
+  { id: 'p-71', name: '羅士凱/Alex Lo' },
+  { id: 'p-72', name: '張芷瑄/Cari Zhang' },
+  { id: 'p-73', name: '陳俐霖/Vivian Chen' },
+  { id: 'p-74', name: '楊博惟/William Yang' },
+  { id: 'p-75', name: '王映雯/Raven Wang' },
+  { id: 'p-76', name: '林奕嫻/Catherine Lin' },
+  { id: 'p-77', name: '陳畇樺/Rainie Chen' },
+  { id: 'p-78', name: '林俊良/Roger Lin' },
+  { id: 'p-79', name: '張治尹/Jimmy Chang' },
+];
+
+// 洗牌函数 (Fisher-Yates shuffle)
+const shuffleArray = <T,>(array: T[]): T[] => {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+};
+
+// 初始化时洗牌名单
+const INITIAL_PARTICIPANTS = shuffleArray(HARDCODED_PARTICIPANTS);
+
 const App: React.FC = () => {
-  const [participants, setParticipants] = useState<Participant[]>([]);
+  const [participants, setParticipants] = useState<Participant[]>(INITIAL_PARTICIPANTS);
   const [winners, setWinners] = useState<Winner[]>([]);
   const [prizes, setPrizes] = useState<Prize[]>([]);
   const [selectedPrizeId, setSelectedPrizeId] = useState<string>('');
   const [currentWinner, setCurrentWinner] = useState<Participant | null>(null);
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
-  const [rawInput, setRawInput] = useState<string>('');
   const [rawPrizeInput, setRawPrizeInput] = useState<string>('');
   const [showSettings, setShowSettings] = useState<boolean>(false);
 
-  // Load from LocalStorage
+  // Load from LocalStorage (only for winners and prizes, participants are hardcoded)
   useEffect(() => {
-      const storedParticipants = localStorage.getItem(STORAGE_KEY_PARTICIPANTS);
       const storedWinners = localStorage.getItem(STORAGE_KEY_WINNERS);
       const storedPrizes = localStorage.getItem(STORAGE_KEY_PRIZES);
       
-      if (storedParticipants) {
-      setParticipants(JSON.parse(storedParticipants));
-      }
+      // Participants are always initialized from hardcoded list, shuffled randomly
+      setParticipants(shuffleArray(HARDCODED_PARTICIPANTS));
+      
       if (storedWinners) {
       setWinners(JSON.parse(storedWinners));
       }
@@ -49,12 +142,11 @@ const App: React.FC = () => {
         }
   }, []);
 
-  // Save to LocalStorage
+  // Save to LocalStorage (participants are hardcoded, so we don't save them)
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY_PARTICIPANTS, JSON.stringify(participants));
     localStorage.setItem(STORAGE_KEY_WINNERS, JSON.stringify(winners));
     localStorage.setItem(STORAGE_KEY_PRIZES, JSON.stringify(prizes));
-  }, [participants, winners, prizes]);
+  }, [winners, prizes]);
 
   // Derived state: Potential candidates (those who haven't won yet)
   const candidates = useMemo(() => {
@@ -67,18 +159,7 @@ const App: React.FC = () => {
   [prizes, selectedPrizeId]);
 
   const handleImport = () => {
-    if (rawInput.trim()) {
-      const lines = rawInput.split('\n').filter(line => line.trim() !== '');
-      const newParticipants: Participant[] = lines.map((line, idx) => {
-        return {
-          id: `p-${Date.now()}-${idx}`,
-          name: line.trim()
-        };
-      });
-      setParticipants([...participants, ...newParticipants]);
-      setRawInput('');
-    }
-
+    // Participants are hardcoded, so we only handle prize imports
     if (rawPrizeInput.trim()) {
       const prizeLines = rawPrizeInput.split('\n').filter(line => line.trim() !== '');
       const newPrizes: Prize[] = prizeLines.map((line, idx) => {
@@ -102,14 +183,15 @@ const App: React.FC = () => {
   };
 
   const handleClearAll = () => {
-    if (window.confirm('確定要清除所有資料（名單、獎項與中獎紀錄）嗎？')) {
-      setParticipants([]);
+    if (window.confirm('確定要清除所有資料（獎項與中獎紀錄）嗎？名單為固定名單，不會被清除。')) {
+      setParticipants(shuffleArray(HARDCODED_PARTICIPANTS)); // Reset to hardcoded list, shuffled
       setWinners([]);
       setPrizes([]);
       setSelectedPrizeId('');
       setCurrentWinner(null);
       setAppState(AppState.IDLE);
-      localStorage.clear();
+      localStorage.removeItem(STORAGE_KEY_WINNERS);
+      localStorage.removeItem(STORAGE_KEY_PRIZES);
     }
   };
 
@@ -318,25 +400,14 @@ const App: React.FC = () => {
             </div>
             
             <div className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-bold text-gray-400 mb-2">批次匯入名單 (每行一個人)</label>
-                  <textarea
-                    value={rawInput}
-                    onChange={(e) => setRawInput(e.target.value)}
-                    placeholder="王大明&#10;李小華&#10;..."
-                    className="w-full h-40 bg-black/30 border border-white/10 rounded-xl p-4 text-white focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 outline-none transition-all resize-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-gray-400 mb-2">批次匯入獎項 (格式: 獎項名稱,數量)</label>
-                  <textarea
-                    value={rawPrizeInput}
-                    onChange={(e) => setRawPrizeInput(e.target.value)}
-                    placeholder="特等獎: 10萬現金, 1&#10;一等獎: iPhone 15, 3&#10;..."
-                    className="w-full h-40 bg-black/30 border border-white/10 rounded-xl p-4 text-white focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 outline-none transition-all resize-none"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-bold text-gray-400 mb-2">批次匯入獎項 (格式: 獎項名稱,數量)</label>
+                <textarea
+                  value={rawPrizeInput}
+                  onChange={(e) => setRawPrizeInput(e.target.value)}
+                  placeholder="特等獎: 10萬現金, 1&#10;一等獎: iPhone 15, 3&#10;..."
+                  className="w-full h-40 bg-black/30 border border-white/10 rounded-xl p-4 text-white focus:border-yellow-500 focus:ring-1 focus:ring-yellow-500 outline-none transition-all resize-none"
+                />
               </div>
 
               <div className="flex gap-3">
@@ -344,7 +415,7 @@ const App: React.FC = () => {
                   onClick={handleImport}
                   className="flex-1 bg-yellow-500 hover:bg-yellow-400 text-red-900 font-bold py-3 rounded-xl transition-all"
                 >
-                  匯入名單
+                  匯入獎項
                 </button>
                 <button
                   onClick={handleClearAll}
