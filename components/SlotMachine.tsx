@@ -84,7 +84,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({
       
       const totalDistance = overshootTarget - startOffsetRef.current;
 
-      const duration = 30000 + Math.floor(Math.random() * 5000);
+      const duration = 15000 + Math.floor(Math.random() * 5000);
 
       startTimeRef.current = performance.now();
 
@@ -106,7 +106,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({
          * This creates a "sudden brake" feel followed by a very smooth crawl.
          */
         const k = 40; // Damping intensity
-        const splitTime = 0.3; // Fast phase is 30% of time
+        const splitTime = 0.2; // Fast phase is 20% of time
         const splitDist = 0.8; // Fast phase covers 80% of distance
         
         let ease;
