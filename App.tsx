@@ -14,6 +14,12 @@ import {
   CheckCircle2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+// 图片资源导入
+import { bgMain } from './src/assets/images';
+import { bannerTitle } from './src/assets/images';
+import { decorSide } from './src/assets/images';
+import { buttonBg1 } from './src/assets/images';
+import { icon1 } from './src/assets/images';
 
 const STORAGE_KEY_PARTICIPANTS = 'spring_gala_participants';
 const STORAGE_KEY_WINNERS = 'spring_gala_winners';
@@ -173,8 +179,10 @@ const App: React.FC = () => {
       });
       const updatedPrizes = [...prizes, ...newPrizes];
       setPrizes(updatedPrizes);
-      if (!selectedPrizeId && updatedPrizes.length > 0) {
-        setSelectedPrizeId(updatedPrizes[0].id);
+      const currentPrizeExists = updatedPrizes.some(p => p.id === selectedPrizeId && p.quantity > 0);
+      if (!currentPrizeExists && updatedPrizes.length > 0) {
+        const firstValidPrize = updatedPrizes.find(p => p.quantity > 0) || updatedPrizes[0];
+        setSelectedPrizeId(firstValidPrize.id);
       }
       setRawPrizeInput('');
     }
@@ -236,13 +244,139 @@ const App: React.FC = () => {
         p.id === selectedPrizeId ? { ...p, quantity: Math.max(0, p.quantity - 1) } : p
       ));
 
-      // Fire confetti
+      // Fire confetti - 宇宙爆開效果 🌌💥
+      const duration = 4000;
+      const end = Date.now() + duration;
+      
+      // 主要爆炸 - 中心爆開
       confetti({
-        particleCount: 150,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#FFD700', '#b91c1c', '#ffffff']
+        particleCount: 400,
+        spread: 150,
+        origin: { y: 0.6, x: 0.5 },
+        colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#FF69B4', '#FF00FF', '#b91c1c', '#ffffff', '#FFE4B5', '#FFB6C1'],
+        gravity: 0.6,
+        drift: 2,
+        ticks: 300,
+        scalar: 1.5,
+        startVelocity: 45
       });
+      
+      // 左側爆炸
+      setTimeout(() => {
+        confetti({
+          particleCount: 250,
+          angle: 60,
+          spread: 100,
+          origin: { y: 0.6, x: 0.2 },
+          colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#b91c1c', '#FF69B4'],
+          gravity: 0.5,
+          drift: -2,
+          ticks: 300,
+          scalar: 1.3,
+          startVelocity: 40
+        });
+      }, 50);
+      
+      // 右側爆炸
+      setTimeout(() => {
+        confetti({
+          particleCount: 250,
+          angle: 120,
+          spread: 100,
+          origin: { y: 0.6, x: 0.8 },
+          colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#b91c1c', '#FF69B4'],
+          gravity: 0.5,
+          drift: 2,
+          ticks: 300,
+          scalar: 1.3,
+          startVelocity: 40
+        });
+      }, 100);
+      
+      // 上方爆開
+      setTimeout(() => {
+        confetti({
+          particleCount: 300,
+          angle: 90,
+          spread: 120,
+          origin: { y: 0.3, x: 0.5 },
+          colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#FF69B4', '#FF00FF', '#ffffff'],
+          gravity: 0.4,
+          drift: 0,
+          ticks: 350,
+          scalar: 1.6,
+          startVelocity: 50
+        });
+      }, 150);
+      
+      // 持續噴發效果 - 多點爆炸
+      const interval = setInterval(() => {
+        if (Date.now() > end) {
+          clearInterval(interval);
+          return;
+        }
+        
+        // 隨機位置的小爆炸
+        const randomX = Math.random() * 0.6 + 0.2;
+        const randomY = Math.random() * 0.3 + 0.4;
+        const randomAngle = Math.random() * 80 + 50;
+        
+        confetti({
+          particleCount: 80,
+          angle: randomAngle,
+          spread: 70,
+          origin: { y: randomY, x: randomX },
+          colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#b91c1c', '#ffffff', '#FF69B4'],
+          gravity: 0.7,
+          drift: (Math.random() - 0.5) * 3,
+          ticks: 200,
+          scalar: 1.0 + Math.random() * 0.5,
+          startVelocity: 30 + Math.random() * 20
+        });
+      }, 150);
+      
+      // 最終大爆炸 - 全屏爆開
+      setTimeout(() => {
+        confetti({
+          particleCount: 500,
+          spread: 180,
+          origin: { y: 0.5, x: 0.5 },
+          colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#FF69B4', '#FF00FF', '#b91c1c', '#ffffff', '#FFE4B5', '#FFB6C1', '#FF1493'],
+          gravity: 0.3,
+          drift: 0,
+          ticks: 400,
+          scalar: 2.0,
+          startVelocity: 60
+        });
+      }, 300);
+      
+      // 額外的圓形爆炸效果
+      setTimeout(() => {
+        // 360度圓形爆炸
+        const count = 10;
+        const defaults = {
+          origin: { y: 0.5, x: 0.5 },
+          colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#FF69B4'],
+          scalar: 1.2,
+          startVelocity: 35
+        };
+        
+        function fire(particleRatio: number, opts: any) {
+          confetti({
+            ...defaults,
+            ...opts,
+            particleCount: Math.floor(200 * particleRatio),
+            spread: 360,
+            startVelocity: opts.startVelocity || 35
+          });
+        }
+        
+        fire(0.25, { angle: 60, spread: 55 });
+        fire(0.2, { angle: 120, spread: 55 });
+        fire(0.35, { angle: 90, spread: 55 });
+        fire(0.1, { angle: 45, spread: 55 });
+        fire(0.1, { angle: 135, spread: 55 });
+      }, 400);
     }
   }, [currentWinner, selectedPrize, selectedPrizeId]);
 
@@ -252,15 +386,48 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen festive-gradient flex flex-col text-white">
+    <div 
+      className="min-h-screen flex flex-col text-white relative overflow-hidden"
+      style={{
+        backgroundImage: `url(${bgMain})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      }}
+    >
+      {/* Decorative overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/40 to-black/60 pointer-events-none"></div>
+      
+      {/* Side decorations */}
+      <div className="absolute left-4 top-0 bottom-0 pointer-events-none opacity-30" style={{ width: '112px' }}>
+        <img src={decorSide} alt="" className="h-full w-full object-contain" />
+      </div>
+      <div className="absolute right-4 top-0 bottom-0 pointer-events-none opacity-10" style={{ width: '112px', transform: 'scaleX(-1)' }}>
+        <img src={decorSide} alt="" className="h-full w-full object-contain" />
+      </div>
+      
+      {/* Content wrapper */}
+      <div className="relative z-10 flex flex-col min-h-screen">
       {/* Header */}
       <header className="p-6 flex justify-between items-center bg-black/30 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-3">
-          <div className="p-2 bg-yellow-500 rounded-lg shadow-lg">
-            <Trophy className="text-red-800" size={24} />
+          <div className="relative">
+            <img src={icon1} alt="" className="w-12 h-12 object-contain" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Trophy className="text-yellow-400" size={20} />
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl md:text-2xl font-black gold-glow tracking-tighter">
+          <div 
+            className="relative h-12 px-6 flex items-center justify-center"
+            style={{
+              backgroundImage: `url(${bannerTitle})`,
+              backgroundSize: 'contain',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              minWidth: '450px'
+            }}
+          >
+            <h1 className="text-lg md:text-xl font-black gold-glow tracking-tighter whitespace-nowrap">
               2026 馬上發財 Pinkoi 神馬龍舞
             </h1>
           </div>
@@ -311,7 +478,12 @@ const App: React.FC = () => {
                 <button
                   onClick={handleDraw}
                   disabled={candidates.length === 0 || (prizes.length > 0 && (!selectedPrizeId || (selectedPrize?.quantity || 0) <= 0))}
-                  className="group relative w-full px-12 py-5 bg-yellow-500 hover:bg-yellow-400 disabled:bg-gray-600 rounded-full text-red-900 font-black text-2xl shadow-[0_0_20px_rgba(234,179,8,0.5)] transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-3 overflow-hidden"
+                  className="group relative w-full px-12 py-5 disabled:opacity-50 rounded-full text-white font-black text-2xl shadow-[0_0_20px_rgba(234,179,8,0.5)] transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-3 overflow-hidden"
+                  style={{
+                    backgroundImage: `url(${buttonBg1})`,
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
+                  }}
                 >
                   <div className="absolute inset-0 shimmer pointer-events-none"></div>
                   <Play fill="currentColor" size={24} />
@@ -449,7 +621,7 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
-
+      </div>
     </div>
   );
 };

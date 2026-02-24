@@ -1,6 +1,9 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Participant } from '../types';
+import { decorVertical1 } from '../src/assets/images';
+import { decorVertical2 } from '../src/assets/images';
+import { icon2 } from '../src/assets/images';
 
 interface SlotMachineProps {
   participants: Participant[];
@@ -182,18 +185,46 @@ const SlotMachine: React.FC<SlotMachineProps> = ({
 
   return (
     <div className="relative w-full max-w-xl mx-auto h-[240px] overflow-hidden rounded-2xl border-4 border-yellow-500 bg-gray-900 shadow-[0_0_30px_rgba(234,179,8,0.3)]">
+      {/* Background decoration */}
+      <div className="absolute inset-0 opacity-10">
+        <img src={decorVertical1} alt="" className="absolute left-0 top-0 bottom-0 h-full object-contain" style={{ width: '200px' }} />
+        <img src={decorVertical2} alt="" className="absolute right-0 top-0 bottom-0 h-full object-contain" style={{ width: '200px'}} />
+      </div>
+      
       {/* Viewport Overlay for center selection */}
       <div className="absolute inset-x-0 top-[80px] h-[80px] border-y-2 border-yellow-500/50 bg-yellow-500/10 pointer-events-none z-10"></div>
       
-      {/* Decorative side lights */}
+      {/* Decorative side icons */}
       <div className="absolute left-2 inset-y-0 flex flex-col justify-around py-4 z-20">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className={`w-2 h-2 rounded-full ${isRolling ? 'animate-pulse bg-yellow-400' : 'bg-yellow-700'}`}></div>
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="flex items-center justify-center">
+            <img 
+              src={icon2} 
+              alt="" 
+              className={`w-10 h-10 object-contain ${isRolling ? 'animate-pulse' : 'opacity-70'}`}
+              style={{ 
+                animationDelay: `${i * 0.2}s`,
+                animationDuration: '1s',
+                filter: isRolling ? 'brightness(1.5) drop-shadow(0 0 8px rgba(234, 179, 8, 0.8))' : 'none'
+              }}
+            />
+          </div>
         ))}
       </div>
       <div className="absolute right-2 inset-y-0 flex flex-col justify-around py-4 z-20">
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className={`w-2 h-2 rounded-full ${isRolling ? 'animate-pulse bg-yellow-400' : 'bg-yellow-700'}`}></div>
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="flex items-center justify-center">
+            <img 
+              src={icon2} 
+              alt="" 
+              className={`w-10 h-10 object-contain ${isRolling ? 'animate-pulse' : 'opacity-70'}`}
+              style={{ 
+                animationDelay: `${i * 0.2}s`,
+                animationDuration: '1s',
+                filter: isRolling ? 'brightness(1.5) drop-shadow(0 0 8px rgba(234, 179, 8, 0.8))' : 'none'
+              }}
+            />
+          </div>
         ))}
       </div>
 
