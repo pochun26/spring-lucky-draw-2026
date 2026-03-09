@@ -98,7 +98,6 @@ const HARDCODED_PARTICIPANTS: Participant[] = [
   { id: 'p-70', name: '方妍心/Cindy Fang' },
   { id: 'p-71', name: '羅士凱/Alex Lo' },
   { id: 'p-72', name: '張芷瑄/Cari Zhang' },
-  { id: 'p-73', name: '陳俐霖/Vivian Chen' },
   { id: 'p-74', name: '楊博惟/William Yang' },
   { id: 'p-75', name: '王映雯/Raven Wang' },
   { id: 'p-76', name: '林奕嫻/Catherine Lin' },
