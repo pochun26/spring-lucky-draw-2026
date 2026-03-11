@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { Participant, Winner, AppState, Prize } from './types';
 import SlotMachine from './components/SlotMachine';
 import { 
@@ -11,15 +11,17 @@ import {
   History, 
   Settings,
   ClipboardList,
-  CheckCircle2
+  CheckCircle2,
+  Zap,
+  Gift
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-// 图片资源导入
-import { bgMain } from './src/assets/images';
-import { bannerTitle } from './src/assets/images';
-import { decorSide } from './src/assets/images';
-import { buttonBg1 } from './src/assets/images';
-import { icon1 } from './src/assets/images';
+// Image asset imports
+import { bgMain } from './assets/images';
+import { bannerTitle } from './assets/images';
+import { decorSide } from './assets/images';
+import { buttonBg1 } from './assets/images';
+import { icon1 } from './assets/images';
 
 const STORAGE_KEY_PARTICIPANTS = 'spring_gala_participants';
 const STORAGE_KEY_WINNERS = 'spring_gala_winners';
@@ -34,8 +36,6 @@ const HARDCODED_PARTICIPANTS: Participant[] = [
   { id: 'p-6', name: '林湘婕/Kate Lin' },
   { id: 'p-7', name: '楊禮如/Lily Yang' },
   { id: 'p-8', name: '嚴守潔/Jessica Yen' },
-  { id: 'p-9', name: '張倚瑄/Pearl Chang' },
-  { id: 'p-10', name: '陳湘霖/Devin Chen' },
   { id: 'p-11', name: '李少昱/Mark Lee' },
   { id: 'p-12', name: '許華汧/Jo Xu' },
   { id: 'p-13', name: '黃翊庭/Yiting Huang' },
@@ -47,18 +47,15 @@ const HARDCODED_PARTICIPANTS: Participant[] = [
   { id: 'p-19', name: '陳姿穎/ZihZih Chen' },
   { id: 'p-20', name: '陳映慈/April Chen' },
   { id: 'p-21', name: '許博鏞/Dickey Hsu' },
-  { id: 'p-22', name: '洪士程/Shih Chen Hung' },
   { id: 'p-23', name: '邱瀚毅/Dixon Chiu' },
   { id: 'p-24', name: '杜杰翰/Jonathan Tu' },
   { id: 'p-25', name: '邱嘉慶/Aion Chiu' },
   { id: 'p-26', name: '郭思妍/Lucy Kuo' },
   { id: 'p-27', name: '陳彥如/Verna Chen' },
   { id: 'p-28', name: '鄭博元/Louis Zheng' },
-  { id: 'p-29', name: '巫佩儀/Peggy Wu' },
   { id: 'p-30', name: '侯君妍/Kelly Hou' },
   { id: 'p-31', name: '蔡宗嶧/Seven Tsai' },
   { id: 'p-32', name: '葉建夆/Jimmy Yeh' },
-  { id: 'p-33', name: '張睿哲/Pony Chang' },
   { id: 'p-34', name: '孫慧軒/Stephanie Sun' },
   { id: 'p-35', name: '黃以萱/Sheila Huang' },
   { id: 'p-36', name: '詹涵如/Ruby Chan' },
@@ -68,7 +65,6 @@ const HARDCODED_PARTICIPANTS: Participant[] = [
   { id: 'p-40', name: '陳奕/Eton Chen' },
   { id: 'p-41', name: '謝秉芸/Joyce Hsieh' },
   { id: 'p-42', name: '林若雯/Loran Lin' },
-  { id: 'p-43', name: '王思惠/Winnie Wang' },
   { id: 'p-44', name: '莊期棋/Kiki Chuang' },
   { id: 'p-45', name: '陳錕詮/Jack Chen' },
   { id: 'p-46', name: '葉立安/Lian Yeh' },
@@ -106,7 +102,7 @@ const HARDCODED_PARTICIPANTS: Participant[] = [
   { id: 'p-79', name: '張治尹/Jimmy Chang' },
 ];
 
-// 洗牌函数 (Fisher-Yates shuffle)
+// Fisher-Yates shuffle
 const shuffleArray = <T,>(array: T[]): T[] => {
   const shuffled = [...array];
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -116,7 +112,7 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return shuffled;
 };
 
-// 初始化时洗牌名单
+// Initialize with a shuffled copy of the hardcoded participant list
 const INITIAL_PARTICIPANTS = shuffleArray(HARDCODED_PARTICIPANTS);
 
 const App: React.FC = () => {
@@ -125,9 +121,15 @@ const App: React.FC = () => {
   const [prizes, setPrizes] = useState<Prize[]>([]);
   const [selectedPrizeId, setSelectedPrizeId] = useState<string>('');
   const [currentWinner, setCurrentWinner] = useState<Participant | null>(null);
+  const [currentWinners, setCurrentWinners] = useState<Participant[]>([]);
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
   const [rawPrizeInput, setRawPrizeInput] = useState<string>('');
   const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [fastMode, setFastMode] = useState<boolean>(false);
+  const [drawCount, setDrawCount] = useState<number>(1); // number of winners to draw: 1 or 2
+  const [pendingRedraw, setPendingRedraw] = useState<boolean>(false); // triggers an immediate redraw after donation
+  const animationCompletedRef = useRef<number>(0); // tracks how many slot machines have finished animating
+  const currentDrawTimestampRef = useRef<number>(0); // timestamp shared between onAnimationComplete and handleDonate
 
   // Load from LocalStorage (only for winners and prizes, participants are hardcoded)
   useEffect(() => {
@@ -196,6 +198,7 @@ const App: React.FC = () => {
       setPrizes([]);
       setSelectedPrizeId('');
       setCurrentWinner(null);
+      setCurrentWinners([]);
       setAppState(AppState.IDLE);
       localStorage.removeItem(STORAGE_KEY_WINNERS);
       localStorage.removeItem(STORAGE_KEY_PRIZES);
@@ -219,170 +222,240 @@ const App: React.FC = () => {
       return;
     }
 
-    const winningIndex = Math.floor(Math.random() * candidates.length);
-    const winner = candidates[winningIndex];
+    // Clamp draw count to available candidates and prize quantity
+    const actualDrawCount = Math.min(drawCount, candidates.length, prize.quantity);
+    if (actualDrawCount === 0) {
+      alert('沒有足夠的人數或獎項數量！');
+      return;
+    }
 
-    setCurrentWinner(winner);
+    // Pick unique winners by shuffling then slicing
+    const shuffledCandidates = shuffleArray([...candidates]);
+    const selectedWinners = shuffledCandidates.slice(0, actualDrawCount);
+    
+    // Reset animation completion counter before starting
+    animationCompletedRef.current = 0;
+    // First winner drives the SlotMachine scroll animation
+    setCurrentWinner(selectedWinners[0]);
+    // All winners are used for the final reveal
+    setCurrentWinners(selectedWinners);
     setAppState(AppState.ROLLING);
-  }, [candidates, selectedPrizeId, prizes]);
+  }, [candidates, selectedPrizeId, prizes, drawCount]);
 
   const onAnimationComplete = useCallback(() => {
+    animationCompletedRef.current += 1;
+    // Wait for all slot machines to finish before revealing the result
+    if (animationCompletedRef.current < currentWinners.length) return;
     setAppState(AppState.WINNER_REVEALED);
     
-    if (currentWinner && selectedPrize) {
-      const newWinner: Winner = {
-        ...currentWinner,
-        drawTimestamp: Date.now(),
+    if (currentWinners.length > 0 && selectedPrize) {
+      // Build Winner records for all drawn participants
+      const timestamp = Date.now();
+      currentDrawTimestampRef.current = timestamp;
+      const newWinners: Winner[] = currentWinners.map(winner => ({
+        ...winner,
+        drawTimestamp: timestamp,
         prizeName: selectedPrize.name
-      };
+      }));
       
-      setWinners(prev => [newWinner, ...prev]);
+      setWinners(prev => [...newWinners, ...prev]);
       
-      // Decrease prize quantity
+      // Reduce prize quantity by the number of winners actually drawn
+      const actualDrawCount = currentWinners.length;
       setPrizes(prev => prev.map(p => 
-        p.id === selectedPrizeId ? { ...p, quantity: Math.max(0, p.quantity - 1) } : p
+        p.id === selectedPrizeId ? { ...p, quantity: Math.max(0, p.quantity - actualDrawCount) } : p
       ));
 
-      // Fire confetti - 宇宙爆開效果 🌌💥
-      const duration = 4000;
-      const end = Date.now() + duration;
-      
-      // 主要爆炸 - 中心爆開
-      confetti({
-        particleCount: 400,
-        spread: 150,
-        origin: { y: 0.6, x: 0.5 },
-        colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#FF69B4', '#FF00FF', '#b91c1c', '#ffffff', '#FFE4B5', '#FFB6C1'],
-        gravity: 0.6,
-        drift: 2,
-        ticks: 300,
-        scalar: 1.5,
-        startVelocity: 45
-      });
-      
-      // 左側爆炸
-      setTimeout(() => {
+      // Fire confetti
+      if (fastMode) {
+        // Fast mode: single simplified burst
         confetti({
-          particleCount: 250,
-          angle: 60,
-          spread: 100,
-          origin: { y: 0.6, x: 0.2 },
-          colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#b91c1c', '#FF69B4'],
-          gravity: 0.5,
-          drift: -2,
-          ticks: 300,
-          scalar: 1.3,
-          startVelocity: 40
+          particleCount: 100,
+          spread: 120,
+          origin: { y: 0.6, x: 0.5 },
+          colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#FF69B4'],
+          gravity: 0.6,
+          ticks: 200,
+          scalar: 1.2,
+          startVelocity: 30
         });
-      }, 50);
-      
-      // 右側爆炸
-      setTimeout(() => {
+      } else {
+        // Normal mode: full multi-wave confetti effect
+        const duration = 4000;
+        const end = Date.now() + duration;
+        
+        // Main blast - center explosion
         confetti({
-          particleCount: 250,
-          angle: 120,
-          spread: 100,
-          origin: { y: 0.6, x: 0.8 },
-          colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#b91c1c', '#FF69B4'],
-          gravity: 0.5,
+          particleCount: 400,
+          spread: 150,
+          origin: { y: 0.6, x: 0.5 },
+          colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#FF69B4', '#FF00FF', '#b91c1c', '#ffffff', '#FFE4B5', '#FFB6C1'],
+          gravity: 0.6,
           drift: 2,
           ticks: 300,
-          scalar: 1.3,
-          startVelocity: 40
+          scalar: 1.5,
+          startVelocity: 45
         });
-      }, 100);
-      
-      // 上方爆開
-      setTimeout(() => {
-        confetti({
-          particleCount: 300,
-          angle: 90,
-          spread: 120,
-          origin: { y: 0.3, x: 0.5 },
-          colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#FF69B4', '#FF00FF', '#ffffff'],
-          gravity: 0.4,
-          drift: 0,
-          ticks: 350,
-          scalar: 1.6,
-          startVelocity: 50
-        });
-      }, 150);
-      
-      // 持續噴發效果 - 多點爆炸
-      const interval = setInterval(() => {
-        if (Date.now() > end) {
-          clearInterval(interval);
-          return;
-        }
         
-        // 隨機位置的小爆炸
-        const randomX = Math.random() * 0.6 + 0.2;
-        const randomY = Math.random() * 0.3 + 0.4;
-        const randomAngle = Math.random() * 80 + 50;
-        
-        confetti({
-          particleCount: 80,
-          angle: randomAngle,
-          spread: 70,
-          origin: { y: randomY, x: randomX },
-          colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#b91c1c', '#ffffff', '#FF69B4'],
-          gravity: 0.7,
-          drift: (Math.random() - 0.5) * 3,
-          ticks: 200,
-          scalar: 1.0 + Math.random() * 0.5,
-          startVelocity: 30 + Math.random() * 20
-        });
-      }, 150);
-      
-      // 最終大爆炸 - 全屏爆開
-      setTimeout(() => {
-        confetti({
-          particleCount: 500,
-          spread: 180,
-          origin: { y: 0.5, x: 0.5 },
-          colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#FF69B4', '#FF00FF', '#b91c1c', '#ffffff', '#FFE4B5', '#FFB6C1', '#FF1493'],
-          gravity: 0.3,
-          drift: 0,
-          ticks: 400,
-          scalar: 2.0,
-          startVelocity: 60
-        });
-      }, 300);
-      
-      // 額外的圓形爆炸效果
-      setTimeout(() => {
-        // 360度圓形爆炸
-        const count = 10;
-        const defaults = {
-          origin: { y: 0.5, x: 0.5 },
-          colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#FF69B4'],
-          scalar: 1.2,
-          startVelocity: 35
-        };
-        
-        function fire(particleRatio: number, opts: any) {
+        // Left-side blast
+        setTimeout(() => {
           confetti({
-            ...defaults,
-            ...opts,
-            particleCount: Math.floor(200 * particleRatio),
-            spread: 360,
-            startVelocity: opts.startVelocity || 35
+            particleCount: 250,
+            angle: 60,
+            spread: 100,
+            origin: { y: 0.6, x: 0.2 },
+            colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#b91c1c', '#FF69B4'],
+            gravity: 0.5,
+            drift: -2,
+            ticks: 300,
+            scalar: 1.3,
+            startVelocity: 40
           });
-        }
+        }, 50);
         
-        fire(0.25, { angle: 60, spread: 55 });
-        fire(0.2, { angle: 120, spread: 55 });
-        fire(0.35, { angle: 90, spread: 55 });
-        fire(0.1, { angle: 45, spread: 55 });
-        fire(0.1, { angle: 135, spread: 55 });
-      }, 400);
+        // Right-side blast
+        setTimeout(() => {
+          confetti({
+            particleCount: 250,
+            angle: 120,
+            spread: 100,
+            origin: { y: 0.6, x: 0.8 },
+            colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#b91c1c', '#FF69B4'],
+            gravity: 0.5,
+            drift: 2,
+            ticks: 300,
+            scalar: 1.3,
+            startVelocity: 40
+          });
+        }, 100);
+        
+        // Top explosion
+        setTimeout(() => {
+          confetti({
+            particleCount: 300,
+            angle: 90,
+            spread: 120,
+            origin: { y: 0.3, x: 0.5 },
+            colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#FF69B4', '#FF00FF', '#ffffff'],
+            gravity: 0.4,
+            drift: 0,
+            ticks: 350,
+            scalar: 1.6,
+            startVelocity: 50
+          });
+        }, 150);
+        
+        // Continuous multi-point bursts for the animation duration
+        const interval = setInterval(() => {
+          if (Date.now() > end) {
+            clearInterval(interval);
+            return;
+          }
+          
+          // Random-position mini bursts
+          const randomX = Math.random() * 0.6 + 0.2;
+          const randomY = Math.random() * 0.3 + 0.4;
+          const randomAngle = Math.random() * 80 + 50;
+          
+          confetti({
+            particleCount: 80,
+            angle: randomAngle,
+            spread: 70,
+            origin: { y: randomY, x: randomX },
+            colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#b91c1c', '#ffffff', '#FF69B4'],
+            gravity: 0.7,
+            drift: (Math.random() - 0.5) * 3,
+            ticks: 200,
+            scalar: 1.0 + Math.random() * 0.5,
+            startVelocity: 30 + Math.random() * 20
+          });
+        }, 150);
+        
+        // Final mega blast - full-screen explosion
+        setTimeout(() => {
+          confetti({
+            particleCount: 500,
+            spread: 180,
+            origin: { y: 0.5, x: 0.5 },
+            colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#FF69B4', '#FF00FF', '#b91c1c', '#ffffff', '#FFE4B5', '#FFB6C1', '#FF1493'],
+            gravity: 0.3,
+            drift: 0,
+            ticks: 400,
+            scalar: 2.0,
+            startVelocity: 60
+          });
+        }, 300);
+        
+        // Additional 360-degree radial burst
+        setTimeout(() => {
+          const defaults = {
+            origin: { y: 0.5, x: 0.5 },
+            colors: ['#FFD700', '#FFA500', '#FF6347', '#FF1493', '#FF69B4'],
+            scalar: 1.2,
+            startVelocity: 35
+          };
+          
+          function fire(particleRatio: number, opts: any) {
+            confetti({
+              ...defaults,
+              ...opts,
+              particleCount: Math.floor(200 * particleRatio),
+              spread: 360,
+              startVelocity: opts.startVelocity || 35
+            });
+          }
+          
+          fire(0.25, { angle: 60, spread: 55 });
+          fire(0.2, { angle: 120, spread: 55 });
+          fire(0.35, { angle: 90, spread: 55 });
+          fire(0.1, { angle: 45, spread: 55 });
+          fire(0.1, { angle: 135, spread: 55 });
+        }, 400);
+      }
     }
-  }, [currentWinner, selectedPrize, selectedPrizeId]);
+  }, [currentWinners, selectedPrize, selectedPrizeId, fastMode]);
 
   const resetDraw = () => {
     setAppState(AppState.IDLE);
     setCurrentWinner(null);
+    setCurrentWinners([]);
   };
+
+  // "Donate" the prize: remove current winners from records (they return to candidate pool),
+  // restore prize quantity, then immediately redraw for the same prize.
+  const handleDonate = useCallback(() => {
+    if (currentWinners.length === 0) return;
+
+    const donationTimestamp = currentDrawTimestampRef.current;
+
+    // Keep winners in records (so they stay excluded from the candidate pool),
+    // but mark their prize as donated so the history reflects it.
+    setWinners(prev => prev.map(w =>
+      w.drawTimestamp === donationTimestamp
+        ? { ...w, prizeName: `${w.prizeName}（已捐出）` }
+        : w
+    ));
+
+    // Restore prize quantity
+    setPrizes(prev => prev.map(p =>
+      p.id === selectedPrizeId
+        ? { ...p, quantity: p.quantity + currentWinners.length }
+        : p
+    ));
+
+    setCurrentWinner(null);
+    setCurrentWinners([]);
+    setAppState(AppState.IDLE);
+    setPendingRedraw(true);
+  }, [currentWinners, selectedPrizeId]);
+
+  // Fire handleDraw on the next render cycle after donation state is settled
+  useEffect(() => {
+    if (pendingRedraw) {
+      setPendingRedraw(false);
+      handleDraw();
+    }
+  }, [pendingRedraw, handleDraw]);
 
   return (
     <div 
@@ -432,7 +505,44 @@ const App: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {/* Draw count toggle */}
+          <div className="flex items-center gap-1 bg-white/5 rounded-full px-1 py-1 border border-white/10">
+            <button
+              onClick={() => setDrawCount(1)}
+              className={`px-3 py-1 rounded-full font-bold text-sm transition-all ${
+                drawCount === 1
+                  ? 'bg-yellow-500 text-red-900'
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              1人
+            </button>
+            <button
+              onClick={() => setDrawCount(2)}
+              className={`px-3 py-1 rounded-full font-bold text-sm transition-all ${
+                drawCount === 2
+                  ? 'bg-yellow-500 text-red-900'
+                  : 'text-white/60 hover:text-white'
+              }`}
+            >
+              2人
+            </button>
+          </div>
+
+          {/* Fast mode toggle */}
+          <button 
+            onClick={() => setFastMode(!fastMode)}
+            className={`p-2 rounded-full transition-all flex items-center gap-2 ${
+              fastMode 
+                ? 'bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30' 
+                : 'hover:bg-white/10 text-white/70 hover:text-white'
+            }`}
+            title={fastMode ? "快速模式已開啟" : "開啟快速模式"}
+          >
+            <Zap size={20} className={fastMode ? 'fill-current' : ''} />
+            {fastMode && <span className="text-xs font-bold">快速</span>}
+          </button>
           <button 
             onClick={() => setShowSettings(!showSettings)}
             className="p-2 hover:bg-white/10 rounded-full transition-colors"
@@ -446,12 +556,39 @@ const App: React.FC = () => {
       <main className="flex-1 flex flex-col items-center justify-center p-4 gap-8 max-w-5xl mx-auto w-full">
         {/* Main Lucky Draw Arena */}
         <div className="w-full relative py-8 px-4 bg-black/20 rounded-3xl border border-white/5 shadow-2xl">
-          <SlotMachine 
-            participants={candidates}
-            winner={currentWinner}
-            isRolling={appState === AppState.ROLLING}
-            onAnimationComplete={onAnimationComplete}
-          />
+          {drawCount === 2 && appState !== AppState.IDLE ? (
+            <div className="flex gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="text-center text-yellow-500/60 text-xs font-bold uppercase tracking-widest mb-2">第 1 位</div>
+                <SlotMachine 
+                  participants={candidates}
+                  winner={currentWinners[0] ?? null}
+                  isRolling={appState === AppState.ROLLING}
+                  onAnimationComplete={onAnimationComplete}
+                  fastMode={fastMode}
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-center text-yellow-500/60 text-xs font-bold uppercase tracking-widest mb-2">第 2 位</div>
+                <SlotMachine 
+                  participants={candidates}
+                  winner={currentWinners[1] ?? null}
+                  isRolling={appState === AppState.ROLLING}
+                  onAnimationComplete={onAnimationComplete}
+                  fastMode={fastMode}
+                  delay={300}
+                />
+              </div>
+            </div>
+          ) : (
+            <SlotMachine 
+              participants={candidates}
+              winner={currentWinner}
+              isRolling={appState === AppState.ROLLING}
+              onAnimationComplete={onAnimationComplete}
+              fastMode={fastMode}
+            />
+          )}
 
           {/* Controls Overlay */}
           <div className="mt-8 flex flex-col items-center gap-6">
@@ -476,7 +613,7 @@ const App: React.FC = () => {
                 
                 <button
                   onClick={handleDraw}
-                  disabled={candidates.length === 0 || (prizes.length > 0 && (!selectedPrizeId || (selectedPrize?.quantity || 0) <= 0))}
+                  disabled={candidates.length === 0 || (prizes.length > 0 && (!selectedPrizeId || (selectedPrize?.quantity || 0) < drawCount))}
                   className="group relative w-full px-12 py-5 disabled:opacity-50 rounded-full text-white font-black text-2xl shadow-[0_0_20px_rgba(234,179,8,0.5)] transition-all transform hover:scale-105 active:scale-95 flex items-center justify-center gap-3 overflow-hidden"
                   style={{
                     backgroundImage: `url(${buttonBg1})`,
@@ -486,29 +623,42 @@ const App: React.FC = () => {
                 >
                   <div className="absolute inset-0 shimmer pointer-events-none"></div>
                   <Play fill="currentColor" size={24} />
-                  開始抽獎
+                  開始抽獎 {drawCount === 2 && '(2人)'}
                 </button>
               </div>
             )}
 
             {appState === AppState.WINNER_REVEALED && (
-              <div className="text-center animate-in fade-in zoom-in duration-700">
+              <div className="text-center animate-in fade-in zoom-in duration-700 w-full">
                 <div className="mb-2">
-                  <span className="text-yellow-500/80 font-bold text-sm uppercase tracking-widest block mb-1">獲得 {selectedPrize?.name}</span>
-                  <h2 className="text-5xl font-black text-yellow-400 gold-glow">
-                    {currentWinner?.name}
-                  </h2>
+                  <span className="text-yellow-500/80 font-bold text-sm uppercase tracking-widest block mb-3">
+                    恭喜以上 {currentWinners.length} 位獲得 {selectedPrize?.name}！
+                  </span>
+                  {currentWinners.length === 1 && (
+                    <h2 className="text-5xl font-black text-yellow-400 gold-glow">
+                      {currentWinners[0]?.name}
+                    </h2>
+                  )}
                 </div>
                 
-                <div className="h-8"></div>
+                <div className="h-4"></div>
 
-                <button
-                  onClick={resetDraw}
-                  className="px-8 py-3 bg-white/10 hover:bg-white/20 rounded-full font-bold flex items-center gap-2 mx-auto transition-all"
-                >
-                  <RotateCcw size={18} />
-                  準備下一次
-                </button>
+                <div className="flex items-center justify-center gap-3">
+                  <button
+                    onClick={resetDraw}
+                    className="px-8 py-3 bg-white/10 hover:bg-white/20 rounded-full font-bold flex items-center gap-2 transition-all"
+                  >
+                    <RotateCcw size={18} />
+                    準備下一次
+                  </button>
+                  <button
+                    onClick={handleDonate}
+                    className="px-8 py-3 bg-red-800/40 hover:bg-red-700/50 border border-red-500/40 hover:border-red-400/60 rounded-full font-bold flex items-center gap-2 transition-all text-red-300 hover:text-red-200"
+                  >
+                    <Gift size={18} />
+                    捐出來
+                  </button>
+                </div>
               </div>
             )}
 
@@ -556,7 +706,7 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Settings Modal (Import名單) */}
+      {/* Settings modal */}
       {showSettings && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-4 duration-300">

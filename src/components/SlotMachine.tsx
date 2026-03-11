@@ -1,22 +1,26 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Participant } from '../types';
-import { decorVertical1 } from '../src/assets/images';
-import { decorVertical2 } from '../src/assets/images';
-import { icon2 } from '../src/assets/images';
+import { decorVertical1 } from '../assets/images';
+import { decorVertical2 } from '../assets/images';
+import { icon2 } from '../assets/images';
 
 interface SlotMachineProps {
   participants: Participant[];
   winner: Participant | null;
   isRolling: boolean;
   onAnimationComplete: () => void;
+  fastMode?: boolean;
+  delay?: number; // ms delay before starting, creates a staggered feel with multiple machines
 }
 
 const SlotMachine: React.FC<SlotMachineProps> = ({ 
   participants, 
   winner, 
   isRolling, 
-  onAnimationComplete 
+  onAnimationComplete,
+  fastMode = false,
+  delay = 0
 }) => {
   const [offset, setOffset] = useState(0);
   const [activeParticipants, setActiveParticipants] = useState<Participant[]>([]);
@@ -56,6 +60,8 @@ const SlotMachine: React.FC<SlotMachineProps> = ({
     if (isRolling && winner && participants.length > 0) {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
 
+      function startAnimation() {
+
       // Freeze participants list for this roll
       setActiveParticipants(participants);
 
@@ -72,7 +78,10 @@ const SlotMachine: React.FC<SlotMachineProps> = ({
         Math.abs(startOffsetRef.current) / loopHeight
       );
 
-      const EXTRA_LOOPS = 20 + Math.floor(Math.random() * 5);
+      // Fast mode: fewer loops and shorter duration
+      const EXTRA_LOOPS = fastMode 
+        ? 3 + Math.floor(Math.random() * 2)  // fast mode: 3-4 loops
+        : 20 + Math.floor(Math.random() * 5); // normal mode: 20-24 loops
       const targetLoops = currentLoops + EXTRA_LOOPS;
 
       const normalizedIndex = safeWinnerIndex + itemCount;
@@ -87,12 +96,15 @@ const SlotMachine: React.FC<SlotMachineProps> = ({
       
       const totalDistance = overshootTarget - startOffsetRef.current;
 
-      const duration = 15000 + Math.floor(Math.random() * 5000);
+      // Fast mode: 2-3s; normal mode: 15-20s
+      const duration = fastMode 
+        ? 2000 + Math.floor(Math.random() * 1000)  // fast mode: 2-3s
+        : 15000 + Math.floor(Math.random() * 5000); // normal mode: 15-20s
 
       startTimeRef.current = performance.now();
 
-      // Magnetic stop parameters
-      const MAGNETIC_DURATION = 500; // Duration for magnetic snap effect (ms) - slightly longer for smoother effect
+      // Magnetic stop parameters - fast mode uses a shorter snap duration
+      const MAGNETIC_DURATION = fastMode ? 200 : 500; // fast mode: 200ms; normal mode: 500ms
       const BOUNCE_DAMPING = 0.2; // Damping factor for bounce back (very subtle)
       
       let magneticStartTime: number | null = null;
@@ -128,7 +140,7 @@ const SlotMachine: React.FC<SlotMachineProps> = ({
           ease = splitDist + normalizedSlowEase * (1 - splitDist);
         }
 
-        // Calculate position: 主動畫直接到達超過位置（overshootTarget）
+        // Calculate position: drive past the target to overshootTarget
         const currentPos = startOffsetRef.current + totalDistance * ease;
         setOffset(currentPos);
 
@@ -136,13 +148,13 @@ const SlotMachine: React.FC<SlotMachineProps> = ({
           animationRef.current = requestAnimationFrame(animate);
         } else {
           // 🧲 MAGNETIC STOP EFFECT
-          // 主動畫已經超過目標位置，現在磁性效果彈回
+          // Main animation has overshot the target; now snap back magnetically
           
-          // 主動畫結束時已經在超過位置
+          // Position is at overshoot when the main animation ends
           setOffset(overshootTarget);
           
           magneticStartTime = currentTime;
-          magneticStartOffset = overshootTarget; // 從超過的位置開始磁性效果
+          magneticStartOffset = overshootTarget; // snap starts from the overshoot position
           
           const magneticAnimate = (magTime: number) => {
             if (!magneticStartTime) return;
@@ -150,15 +162,13 @@ const SlotMachine: React.FC<SlotMachineProps> = ({
             const magElapsed = magTime - magneticStartTime;
             const magProgress = Math.min(magElapsed / MAGNETIC_DURATION, 1);
             
-            // 從超過的位置彈回目標位置
-            // magneticStartOffset 已經是 overshootTarget（超過的位置，包含 EXTRA_LOOPS）
-            // 需要彈回到 finalOffsetWithLoops（因為 normalize 後等於 finalTargetOffset）
-            // 這樣可以確保彈回距離正確，不會多轉
+            // Snap back from overshoot to finalOffsetWithLoops (equivalent to finalTargetOffset after normalization),
+            // ensuring the correct snap distance without extra rotation
             const snapBackDistance = finalOffsetWithLoops - magneticStartOffset;
             
-            // 使用 ease-out 緩動，加上微小的彈跳效果
-            const snapEase = 1 - Math.pow(1 - magProgress, 3); // Cubic ease-out
-            // 微小的阻尼振盪效果
+            // Cubic ease-out with a subtle damped oscillation
+            const snapEase = 1 - Math.pow(1 - magProgress, 3);
+            // Damped oscillation for a natural elastic feel
             const bounce = Math.exp(-magProgress * 8) * Math.sin(magProgress * Math.PI * 1.5) * BOUNCE_DAMPING;
             
             const magneticPos = magneticStartOffset + snapBackDistance * snapEase + bounce * Math.abs(snapBackDistance);
@@ -180,8 +190,16 @@ const SlotMachine: React.FC<SlotMachineProps> = ({
       
 
       animationRef.current = requestAnimationFrame(animate);
+      } // end startAnimation
+
+      if (delay > 0) {
+        const delayTimer = setTimeout(() => startAnimation(), delay);
+        return () => clearTimeout(delayTimer);
+      } else {
+        startAnimation();
+      }
     }
-  }, [isRolling, winner, participants, onAnimationComplete]);
+  }, [isRolling, winner, participants, onAnimationComplete, fastMode, delay]);
 
   return (
     <div className="relative w-full max-w-xl mx-auto h-[240px] overflow-hidden rounded-2xl border-4 border-yellow-500 bg-gray-900 shadow-[0_0_30px_rgba(234,179,8,0.3)]">
