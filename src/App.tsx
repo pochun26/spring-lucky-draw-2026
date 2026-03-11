@@ -97,7 +97,6 @@ const HARDCODED_PARTICIPANTS: Participant[] = [
   { id: 'p-74', name: '楊博惟/William Yang' },
   { id: 'p-75', name: '王映雯/Raven Wang' },
   { id: 'p-76', name: '林奕嫻/Catherine Lin' },
-  { id: 'p-77', name: '陳畇樺/Rainie Chen' },
   { id: 'p-78', name: '林俊良/Roger Lin' },
   { id: 'p-79', name: '張治尹/Jimmy Chang' },
 ];
